@@ -5,7 +5,10 @@ from matplotlib.ticker import NullFormatter
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.figure import Figure
-
+from threading import Thread
+import Audio_Processing_Backend as backend
+import wave
+import pyaudio
 
 
 #FUNCS
@@ -27,6 +30,74 @@ def draw_figure(canvas, figure, loc=(0, 0)):
     figure_canvas_agg.get_tk_widget().pack(side='top', fill='both', expand=1)
     return figure_canvas_agg
 
+
+
+def recored_audio(rec_time  , fragmentize=2, output_path='', file_name='output.wav'):
+    """
+    Parameters
+    ----------
+    rec_time : int
+        The number of secondes the function will recored
+    output_path : str
+        where to save the recording
+    file_name : str
+        the name of the saved file followed by .wav
+    fragmentize : int
+        every x seconds save a fragment.wav file of the last x seconds in the recording
+    """
+
+    # =====================WAV Audio Format Static Variables ============================
+    CHUNK = 1024
+    FORMAT = pyaudio.paInt16
+    CHANNELS = 2
+    RATE = 44100
+    RECORD_SECONDS = rec_time
+    WAVE_OUTPUT_FILENAME = output_path + file_name
+    global _RECORDING_STATE
+    global _NEW_SEGMENT_FLAG
+    _RECORDING_STATE = True
+    p = pyaudio.PyAudio()
+
+    stream = p.open(format=FORMAT,
+                    channels=CHANNELS,
+                    rate=RATE,
+                    input=True,
+                    frames_per_buffer=CHUNK)
+
+    print("* recording")
+
+    frames = []
+    segment = []
+
+    for i in (range(0, int(RATE / CHUNK * RECORD_SECONDS))):
+        data = stream.read(CHUNK)
+        frames.append(data)
+        if i % (int(RATE / CHUNK * fragmentize)) != 0 and i!=0:
+            segment.append(data)
+        else:
+            print('# fragment saved')
+            wf = wave.open(output_path + 'fragment.wav', 'wb')
+            wf.setnchannels(CHANNELS)
+            wf.setsampwidth(p.get_sample_size(FORMAT))
+            wf.setframerate(RATE)
+            wf.writeframes(b''.join(segment))
+            wf.close()
+            _NEW_SEGMENT_FLAG = True
+            segment = []
+
+    _RECORDING_STATE = False
+    print("* done recording",_RECORDING_STATE)
+
+    stream.stop_stream()
+    stream.close()
+    p.terminate()
+
+    wf = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
+    wf.setnchannels(CHANNELS)
+    wf.setsampwidth(p.get_sample_size(FORMAT))
+    wf.setframerate(RATE)
+    wf.writeframes(b''.join(frames))
+    wf.close()
 
 # ===================================================================================================================#
 
@@ -56,9 +127,11 @@ layout = [[sg.Column(Main_Screen, key='-COL1-'), sg.Column(Training_Screen, visi
 window = sg.Window("Speech Trainer", layout,size=(500,300),auto_size_buttons=True,element_justification='center', finalize=True)
 # ===================================================================================================================#
 #GLOBAL VARS
-_TRAIN_TIME = 1
+_TRAIN_TIME = 0.1
 _TRAIN_TOPIC = 'Null'
+_TIME_COUNTER = 0
 _RECORDING_STATE = False
+_NEW_SEGMENT_FLAG = False
 # ===================================================================================================================#
 canvas_elem = window['T_SOUND_PLOT_CANVAS']
 canvas = canvas_elem.TKCanvas
@@ -97,24 +170,35 @@ while True:
         window[f'-COL1-'].update(visible=True)
         #Begin Recording and Training process
     if event == 'T_BEGIN_REC' and _RECORDING_STATE is False:#Draw Sound Wave
-        _RECORDING_STATE=True
+        # Start Backend Recording in an new thread
+        recording_thread = Thread(target=recored_audio,args=(_TRAIN_TIME * 60, 3,'','output.wav'))
+        recording_thread.start()
+        print('RECORDING...')
         # New Event Loop For Recording Time
         while _RECORDING_STATE:
             event, values = window.read(timeout=2)
             window['T_STOP_REC'].update(visible=True)
-            print('RECORDING...')
-            #Stop Recording
+
+            #Stop Recording Event
             if event == 'T_STOP_REC':
                 _RECORDING_STATE = False
                 window['T_STOP_REC'].update(visible=False)
 
+            #Canvas Update Section
             dpts = [np.random.randint(0, 10) for x in range(100)]
             ax.cla()
             ax.grid()
             ax.plot(range(100), dpts, color='purple')
             fig_agg.draw()
 
+            #Segment Analysis Section
+            if _NEW_SEGMENT_FLAG == True:
+                print('New Segment Has Been Saved And Ready for Analysis')
+                _NEW_SEGMENT_FLAG=False
             window.refresh()
+        if _RECORDING_STATE == False:
+            window['T_STOP_REC'].update(visible=False)
+        recording_thread.join()
 
 #===================================================================================================================#
     #Set Train Time Popup
