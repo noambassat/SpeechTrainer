@@ -113,10 +113,15 @@ Main_Screen = [
 
 Training_Screen = [
                      [sg.Button(button_text='Begin',key='T_BEGIN_REC')],
+                     [sg.Text('Current Question:',justification='center',key='T_TEXT1',visible=False)],
+                     [sg.Multiline('Current Suggestion: ',justification='center',key='T_Q_TEXT',visible=False)],
+                     [sg.Text('What is Your Dream?:',justification='center',key='T_TEXT2',visible=False)],
+                     [sg.Multiline('Raise Your Voice ',justification='center',key='T_Q_TIPS',visible=False)],
                      [sg.Button(button_text='Stop',key='T_STOP_REC',visible=False)],
-                     [sg.Button(button_text='Back',key='T_BACK')],
-                     [sg.Canvas(key='T_SOUND_PLOT_CANVAS')]
-                  ]
+                     [sg.Button(button_text='Back', key='T_BACK')],
+                     [sg.Text('Audio Input:',justification='center')],
+                     [sg.Canvas(key='T_SOUND_PLOT_CANVAS',visible=True)]
+                      ]
 # ===================================================================================================================#
 #Main Layout
 layout = [[sg.Column(Main_Screen, key='-COL1-'), sg.Column(Training_Screen, visible=False, key='-COL2-')]
@@ -124,7 +129,7 @@ layout = [[sg.Column(Main_Screen, key='-COL1-'), sg.Column(Training_Screen, visi
 # ===================================================================================================================#
 
 #Window
-window = sg.Window("Speech Trainer", layout,size=(500,300),auto_size_buttons=True,element_justification='center', finalize=True)
+window = sg.Window("Speech Trainer", layout,size=(800,500),auto_size_buttons=True,element_justification='center', finalize=True)
 # ===================================================================================================================#
 #GLOBAL VARS
 _TRAIN_TIME = 0.1
@@ -133,10 +138,11 @@ _TIME_COUNTER = 0
 _RECORDING_STATE = False
 _NEW_SEGMENT_FLAG = False
 # ===================================================================================================================#
+#Canvas Config
 canvas_elem = window['T_SOUND_PLOT_CANVAS']
 canvas = canvas_elem.TKCanvas
 
-fig = Figure()
+fig = Figure(figsize=(9,4))
 ax = fig.add_subplot(111)
 ax.set_xlabel("X axis")
 ax.set_ylabel("Y axis")
@@ -178,11 +184,20 @@ while True:
         while _RECORDING_STATE:
             event, values = window.read(timeout=2)
             window['T_STOP_REC'].update(visible=True)
+            window['T_Q_TEXT'].update(visible=True)
+            window['T_Q_TIPS'].update(visible=True)
+            window['T_TEXT1'].update(visible=True)
+            window['T_TEXT2'].update(visible=True)
 
             #Stop Recording Event
             if event == 'T_STOP_REC':
                 _RECORDING_STATE = False
                 window['T_STOP_REC'].update(visible=False)
+                window['T_Q_TEXT'].update(visible=False)
+                window['T_Q_TIPS'].update(visible=False)
+                window['T_TEXT1'].update(visible=False)
+                window['T_TEXT2'].update(visible=False)
+                window['T_SOUND_PLOT_CANVAS'].update(visible=False)
 
             #Canvas Update Section
             dpts = [np.random.randint(0, 10) for x in range(100)]
