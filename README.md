@@ -4,7 +4,7 @@
 <br />
 <p align="center">
   <a href="https://github.com/noambassat/NLP">
-    <img src="Misc/Logo.png" alt="Logo" width="280" height="230">
+    <img src="Misc/logo.png" alt="Logo" width="280" height="230">
   </a>
 
   <h3 align="center">Speech Trainer</h3>
