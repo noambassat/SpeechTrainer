@@ -9,37 +9,45 @@ from parselmouth.praat import call
 import pyaudio
 # ===================================================================================================================#
 #Gloval Vars
-
+_SPECTOGRAM_COLOR = 'afmhot'
 
 
 
 #Helper Functions
 
-def draw_spectrogram(spectrogram, dynamic_range=70):
+def draw_spectrogram(spectrogram,ax ,dynamic_range=70):
     X, Y = spectrogram.x_grid(), spectrogram.y_grid()
     sg_db = 10 * np.log10(spectrogram.values)
-    plt.pcolormesh(X, Y, sg_db, vmin=sg_db.max() - dynamic_range, cmap='afmhot')
-    plt.ylim([spectrogram.ymin, spectrogram.ymax])
-    plt.xlabel("time [s]")
-    plt.ylabel("frequency [Hz]")
+    ax.pcolormesh(X, Y, sg_db, vmin=sg_db.max() - dynamic_range, cmap=_SPECTOGRAM_COLOR)
+    ax.set_ylim([spectrogram.ymin, spectrogram.ymax])
+    ax.set_xlabel("time [s]")
 
-def draw_intensity(intensity):
-    plt.plot(intensity.xs(), intensity.values.T, linewidth=3, color='w')
-    plt.plot(intensity.xs(), intensity.values.T, linewidth=1)
-    plt.grid(False)
-    plt.ylim(0)
-    plt.ylabel("intensity [dB]")
-def draw_pitch(pitch):
-    # Extract selected pitch contour, and
-    # replace unvoiced samples by NaN to not plot
+def draw_intensity(intensity,ax):
+    ax.plot(intensity.xs(), intensity.values.T, linewidth=3, color='w')
+    ax.plot(intensity.xs(), intensity.values.T, linewidth=1)
+    ax.axis('off')
+    ax.set_ylim(0)
+def draw_pitch(pitch,ax):
     pitch_values = pitch.selected_array['frequency']
     pitch_values[pitch_values==0] = np.nan
-    plt.plot(pitch.xs(), pitch_values, 'o', markersize=5, color='w')
-    plt.plot(pitch.xs(), pitch_values, 'o', markersize=2)
-    plt.grid(False)
-    plt.ylim(0, pitch.ceiling)
-    plt.ylabel("fundamental frequency [Hz]")
+    ax.plot(pitch.xs(), pitch_values, 'o', markersize=5, color='w')
+    ax.plot(pitch.xs(), pitch_values, 'o', markersize=2)
+    ax.set_ylim(0, pitch.ceiling)
+    ax.axis("off")
 
+def draw_gui_soundgraph(pitch,snd,ax):
+    pre_emphasized_snd = snd.copy()
+    pre_emphasized_snd.pre_emphasize()
+    pectrogram = pre_emphasized_snd.to_spectrogram(window_length=0.03, maximum_frequency=8000)
+    intensity = snd.to_intensity()
+    draw_spectrogram(pectrogram,ax)
+    ax_tag = ax.twinx()
+    draw_intensity(intensity,ax_tag)
+    ax_tag_2 = ax.twinx()
+    draw_pitch(pitch,ax_tag_2)
+    ax_tag.set_xlim([snd.xmin, snd.xmax])
+    ax.set_ylabel("[Hz]")
+    return ax_tag,ax_tag_2
 
 def calculate_sound_features(snd):
     # Calculate A Bulck of prrat features simmilar to what we saw in MIT's paper
