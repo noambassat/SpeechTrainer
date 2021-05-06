@@ -10,7 +10,7 @@
   <h3 align="center">Speech Trainer</h3>
 
   <p align="center">
-    Interactive Speech Skill Improvment Software
+    Interactive Speech Skill Improvement Software
     <br />
     <a href="https://github.com/noambassat/NLP/wiki"><strong>Explore the docs »</strong></a>
     <br />
