@@ -7,7 +7,7 @@
     <img src="Misc/Logo.png" alt="Logo" width="280" height="230">
   </a>
 
-  <h3 align="center">Pickaxe Library</h3>
+  <h3 align="center">Speech Trainer</h3>
 
   <p align="center">
     Interactive Speech Skill Improvment Software
