@@ -1,5 +1,4 @@
-# Speech Trainer
-
+<h1 style="text-align: center;">Speech Trainer</h1>
 <!-- PROJECT LOGO -->
 <br />
 <p align="center">
