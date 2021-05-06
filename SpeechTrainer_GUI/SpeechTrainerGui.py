@@ -6,7 +6,8 @@ from threading import Thread
 from SpeechTrainer_GUI import Audio_Processing_Backend as backend
 import wave
 import pyaudio
-
+import json
+sg.theme('LightGreen')
 
 #FUNCS
 #Popup select window
@@ -65,8 +66,10 @@ def recored_audio(rec_time  , fragmentize=2, output_path='', file_name='output.w
 
     frames = []
     segment = []
-
+    global _STOP_RECORDING
     for i in (range(0, int(RATE / CHUNK * RECORD_SECONDS))):
+        if _STOP_RECORDING == True:
+            break
         data = stream.read(CHUNK)
         frames.append(data)
         if i % (int(RATE / CHUNK * fragmentize)) != 0 or i == 0:
@@ -158,6 +161,7 @@ def calculate_sound_features(snd):
                        'PitchMax': max_pitch,
                        'PitchMin': min_pitch,
                        'PitchMean': mean_pitch,
+                       'diffPitchMaxMean': max_pitch-mean_pitch,
                        'F1_STD': np.std(f1_list),
                        'F3_STD': np.std(f3_list),
                        'F2_STD_F1': np.std(f2_list) / np.std(f1_list),
@@ -184,6 +188,7 @@ Training_Screen = [
                      [sg.Multiline('Current Suggestion: ',justification='center',key='T_Q_TEXT',visible=False)],
                      [sg.Text('What is Your Dream?:',justification='center',key='T_TEXT2',visible=False)],
                      [sg.Multiline('Raise Your Voice ',justification='center',key='T_Q_TIPS',visible=False)],
+                     [sg.Button(button_text='Next Question',key='T_NEXT_Q',visible=False)],
                      [sg.Button(button_text='Stop',key='T_STOP_REC',visible=False)],
                      [sg.Button(button_text='Back', key='T_BACK')],
                      [sg.Text('Audio Input:',justification='center')],
@@ -198,6 +203,18 @@ layout = [[sg.Column(Main_Screen, key='-COL1-'), sg.Column(Training_Screen, visi
 #Window
 window = sg.Window("Speech Trainer", layout,size=(800,500),auto_size_buttons=True,element_justification='center', finalize=True)
 # ===================================================================================================================#
+
+#Loading External Data
+with open('SpeechTrainer_GUI/Data/Job_Interview_Questions.json','r') as jfile:
+    Q_Job_Interview = json.load(jfile)
+    Q_Job_Interview = json.loads(Q_Job_Interview)
+Q_Job_Interview = [i for i in list(Q_Job_Interview.keys()) if i.find('?')!=-1]
+with open('SpeechTrainer_GUI/Data/Date_Questions.json','r') as jfile:
+    Q_Date = json.load(jfile)
+    Q_Date = json.loads(Q_Date)
+
+
+# ===================================================================================================================#
 #GLOBAL VARS
 _TRAIN_TIME           = 1
 _TRAIN_TOPIC          = 'Null'
@@ -209,6 +226,13 @@ _ANALYSIS_RESULT_FLAG = False
 _ANALYSIS_RESULT      = None
 _AX_TAG               = None
 _AX_TAG_2             = None
+_QUESTION_SETS        = {
+                          'Job Interview':Q_Job_Interview,
+                          'Date':Q_Date,
+                          'Lecture':Q_Job_Interview
+                        }
+_LOADED_QUESTION_SET = None
+_STOP_RECORDING      = False
 # ===================================================================================================================#
 #Canvas Config
 canvas_elem = window['T_SOUND_PLOT_CANVAS']
@@ -225,7 +249,6 @@ fig_agg = draw_figure(canvas, fig)
 # ===================================================================================================================#
 while True:
     event, values = window.read()
-    print(event, values)
     if event in (None, 'Exit'):
         break
 
@@ -235,11 +258,11 @@ while True:
     #If User Click on "Start Training"
         #Trining Calls
     if event == 'ST_BTN':
-        if _TRAIN_TIME == 0 or _TRAIN_TOPIC =='null':
-            if _TRAIN_TOPIC =='null':
-                sg.popup_error('Please Choose Training Time and Topic First')
+        if _TRAIN_TIME == 0 or _TRAIN_TOPIC =='Null':
+            if _TRAIN_TOPIC =='Null':
+                sg.popup_error('Please Choose Training Topic First')
             else:
-                sg.popup_error('Please Choose Training Time First')
+                sg.popup_error('Please Choose Training Time First');
             continue
         window[f'-COL1-'].update(visible=False)
         window[f'-COL2-'].update(visible=True)
@@ -252,6 +275,10 @@ while True:
         recording_thread = Thread(target=recored_audio,args=(_TRAIN_TIME * 60, _SAMPLING_RATE,'','output.wav'))
         recording_thread.start()
         print('RECORDING...')
+        #Load First Question
+        window['T_Q_TEXT'].update(_LOADED_QUESTION_SET[np.random.randint(0,len(_LOADED_QUESTION_SET),1)[0]])
+
+
         # New Event Loop For Recording Time
         while _RECORDING_STATE:
             event, values = window.read(timeout=2)
@@ -260,16 +287,22 @@ while True:
             window['T_Q_TIPS'].update(visible=True)
             window['T_TEXT1'].update(visible=True)
             window['T_TEXT2'].update(visible=True)
+            window['T_NEXT_Q'].update(visible=True)
+            window['T_BACK'].update(visible=False)
+            window['T_BEGIN_REC'].update(visible=False)
 
             #Stop Recording Event
             if event == 'T_STOP_REC':
                 _RECORDING_STATE = False
                 window['T_STOP_REC'].update(visible=False)
+                window['T_BEGIN_REC'].update(visible=True)
                 window['T_Q_TEXT'].update(visible=False)
                 window['T_Q_TIPS'].update(visible=False)
                 window['T_TEXT1'].update(visible=False)
                 window['T_TEXT2'].update(visible=False)
+                window['T_NEXT_Q'].update(visible=False)
                 window['T_SOUND_PLOT_CANVAS'].update(visible=False)
+                window['T_BACK'].update(visible=True)
 
             #Segment Analysis Section
             if _NEW_SEGMENT_FLAG == True:
@@ -286,7 +319,12 @@ while True:
                 print('Starting Window Update Based on Analysis Results')
 
                 #Updating
+                print(_ANALYSIS_RESULT)
+                cur_suggestion,cur_score = backend.get_score_and_suggestion(_ANALYSIS_RESULT)
 
+                window['T_Q_TIPS'].update(cur_suggestion+' \t'+'Current Speech Score: [ %0.2f ]'%cur_score)
+
+                ####
 
                 # Canvas Update Section
                 ax.cla()
@@ -296,10 +334,19 @@ while True:
                     _AX_TAG_2.cla()
                 _AX_TAG,_AX_TAG_2 = backend.draw_gui_soundgraph(_ANALYSIS_RESULT['pitch'],segment,ax)
                 fig_agg.draw()
+                # Next Question Button Pressed
+            if event == 'T_NEXT_Q':
+                window['T_Q_TEXT'].update(_LOADED_QUESTION_SET[np.random.randint(0, len(_LOADED_QUESTION_SET), 1)[0]])
 
+            if event == 'T_STOP_REC':
+                _STOP_RECORDING=True
+                recording_thread.join()
+                break
             window.refresh()
+
         if _RECORDING_STATE == False:
             window['T_STOP_REC'].update(visible=False)
+            _STOP_RECORDING=False
 
         #Join Recording Thread To Main Process
         recording_thread.join()
@@ -312,6 +359,9 @@ while True:
     #Set Train Topic Popup
     if event == 'ST_CHOOSE_TRAIN_TOPIC':
         _TRAIN_TOPIC = popup_select(['Job Interview','Date','Lecture'])
+        _LOADED_QUESTION_SET = _QUESTION_SETS[_TRAIN_TOPIC]
+
+
 # ===================================================================================================================#
 
     #Visual Updates

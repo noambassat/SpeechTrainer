@@ -10,7 +10,7 @@ import pyaudio
 # ===================================================================================================================#
 #Gloval Vars
 _SPECTOGRAM_COLOR = 'afmhot'
-
+_COMPLIMENT_POOL = ['Nice Job So Far!','Keep it Up','You are on the right track!']
 
 
 #Helper Functions
@@ -114,6 +114,24 @@ def calculate_sound_features(snd):
                    'F2_STD_F1': np.std(f2_list) / np.std(f1_list)}
     return result_dict
 
+
+
+#Suggestion Generation Backend Function
+def get_score_and_suggestion(feature_set):
+    current_score = 0
+    IntensityBased = -0.7946 + 0.0243 * feature_set['intensityMean']
+    IntensityBased += -0.6314 + 0.0167 * feature_set['intensityMax']
+    IntensityBased += (-0.0025 + 0.0015*feature_set['PitchMax'])
+    current_score = IntensityBased/3
+
+    # If there is any suggestion to be made then return it with the current score prediction
+    if (feature_set['diffPitchMaxMean']-197.169447)/42.695449 <0.0443:
+            return 'Decrease Your Pitch a Little Bit',current_score
+    elif (feature_set['intensityMin']-35.219)/1.61539 >= 1.6:
+        return 'Increase Your Intensity a Little Bit', current_score
+
+    #If there were no bad feature found give user a compliment
+    return _COMPLIMENT_POOL[np.random.randint(0,len(_COMPLIMENT_POOL),1)[0]], current_score
 
 # ===================================================================================================================#
 
