@@ -7,7 +7,8 @@ from SpeechTrainer_GUI import Audio_Processing_Backend as backend
 import wave
 import pyaudio
 import json
-sg.theme('LightGreen')
+import os
+sg.theme('LightBrown6')
 
 #FUNCS
 #Popup select window
@@ -129,6 +130,8 @@ def calculate_sound_features(snd):
             max_formant = 5000
         elif meanF0 >= 300:
             max_formant = 8000
+        else:
+            max_formant = 9000
 
         formants = backend.call(snd, "To Formant (burg)", 0.0025, 5, max_formant, 0.025, 50)
         numPoints = backend.call(pointProcess, "Get number of points")
@@ -174,21 +177,26 @@ def calculate_sound_features(snd):
 
 #Layouts
 Main_Screen = [
-                 [sg.Button(button_text='Start Training',key='ST_BTN',button_color='red',border_width=10
-                            )],
+                 [sg.Button(button_text='Start Training',key='ST_BTN',button_color='red',border_width=10,pad=(1,1))],
                  [sg.Button(button_text='Choose Topic',key='ST_CHOOSE_TRAIN_TOPIC')],
                  [sg.Button(button_text='Set Training Time',key='ST_CHOOSE_TRAIN_TIME')],
                  [sg.Button(button_text='Set Goals',key='ST_SET_GOALS')],
                  [sg.Button(button_text='Personal Progress and Statistics',key='ST_STATS_AND_PROG')]
                ]
 
+
+QS_Frame_Layout = [
+                     [sg.Text('Current Question:', justification='center', key='T_TEXT1', visible=False)],
+                     [sg.Multiline('Current Question: ', justification='center', key='T_Q_TEXT', visible=False),
+                      sg.Button(button_text='Next Question', key='T_NEXT_Q', visible=False)],
+                     [sg.Text('Current Suggestion:', justification='center', key='T_TEXT2', visible=False)],
+                     [sg.Multiline('Raise Your Voice ', justification='center', key='T_Q_TIPS', visible=False)],
+
+                  ]
 Training_Screen = [
                      [sg.Button(button_text='Begin',key='T_BEGIN_REC')],
-                     [sg.Text('Current Question:',justification='center',key='T_TEXT1',visible=False)],
-                     [sg.Multiline('Current Suggestion: ',justification='center',key='T_Q_TEXT',visible=False)],
-                     [sg.Text('What is Your Dream?:',justification='center',key='T_TEXT2',visible=False)],
-                     [sg.Multiline('Raise Your Voice ',justification='center',key='T_Q_TIPS',visible=False)],
-                     [sg.Button(button_text='Next Question',key='T_NEXT_Q',visible=False)],
+                     [sg.Frame('Status Panel', QS_Frame_Layout, font='Any 12', title_color='blue'),
+                      sg.Canvas(key='T_PROGRESS_PLOT_CANVAS', visible=True)],
                      [sg.Button(button_text='Stop',key='T_STOP_REC',visible=False)],
                      [sg.Button(button_text='Back', key='T_BACK')],
                      [sg.Text('Audio Input:',justification='center')],
@@ -216,6 +224,7 @@ with open('SpeechTrainer_GUI/Data/Date_Questions.json','r') as jfile:
 
 # ===================================================================================================================#
 #GLOBAL VARS
+_STARTING_SCORE       = 0.5
 _TRAIN_TIME           = 1
 _TRAIN_TOPIC          = 'Null'
 _TIME_COUNTER         = 0
@@ -250,6 +259,9 @@ fig_agg = draw_figure(canvas, fig)
 while True:
     event, values = window.read()
     if event in (None, 'Exit'):
+        print('EXIT')
+        os.remove('fragment.wav')
+        os.remove('output.wav')
         break
 
     #Main Screen Calls
@@ -320,9 +332,9 @@ while True:
 
                 #Updating
                 print(_ANALYSIS_RESULT)
-                cur_suggestion,cur_score = backend.get_score_and_suggestion(_ANALYSIS_RESULT)
-
-                window['T_Q_TIPS'].update(cur_suggestion+' \t'+'Current Speech Score: [ %0.2f ]'%cur_score)
+                cur_suggestion,cur_score = backend.get_score_and_suggestion(_ANALYSIS_RESULT,_STARTING_SCORE)
+                _STARTING_SCORE = cur_score
+                window['T_Q_TIPS'].update(cur_suggestion+' \t'+'Current Speech Score: [ %0.2f ]'%_STARTING_SCORE)
 
                 ####
 

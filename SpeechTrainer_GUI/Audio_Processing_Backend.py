@@ -117,12 +117,18 @@ def calculate_sound_features(snd):
 
 
 #Suggestion Generation Backend Function
-def get_score_and_suggestion(feature_set):
+def get_score_and_suggestion(feature_set,_STARTING_SCORE):
     current_score = 0
     IntensityBased = -0.7946 + 0.0243 * feature_set['intensityMean']
     IntensityBased += -0.6314 + 0.0167 * feature_set['intensityMax']
     IntensityBased += (-0.0025 + 0.0015*feature_set['PitchMax'])
     current_score = IntensityBased/3
+
+    if current_score > _STARTING_SCORE:
+        current_score = _STARTING_SCORE + 0.1*current_score
+    else:
+        current_score = _STARTING_SCORE - 0.1*current_score
+
 
     # If there is any suggestion to be made then return it with the current score prediction
     if (feature_set['diffPitchMaxMean']-197.169447)/42.695449 <0.0443:
