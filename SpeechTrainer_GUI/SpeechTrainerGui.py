@@ -416,6 +416,7 @@ while True:
 
     if event == 'C_BACK':
         _NEXT_WORD_ = 0
+        window['Cal_Text'].update(visible=False)
         window[f'-COL3-'].update(visible=False)
         window[f'-COL2-'].update(visible=False)
         window[f'-COL1-'].update(visible=True)
@@ -424,10 +425,15 @@ while True:
         recording_thread.join()
 
     if event == 'C_next_word':
-        window['F_WORDS_LINES'].update(words_list[_NEXT_WORD_])
-        _NEXT_WORD_ += 1
+        if(_NEXT_WORD_>=len(words_list)): _NEXT_WORD_ = 0
+        if(len(words_list)==0):
+            window['F_WORDS_LINES'].update("Sorry, couldn't convert your text")
+        else:
+            window['F_WORDS_LINES'].update(words_list[_NEXT_WORD_])
+            _NEXT_WORD_ += 1
     if event == 'C_PRINT_TEXT':
-        window['print_full_text'].update(text)
+        if(len(words_list)!=0):
+            window['print_full_text'].update(text)
     #===================================================================================================================#
     #Set Train Time Popup
     if event == 'ST_CHOOSE_TRAIN_TIME':
