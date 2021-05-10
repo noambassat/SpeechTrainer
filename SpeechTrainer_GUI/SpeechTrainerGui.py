@@ -217,6 +217,7 @@ Freq_words_Layout =[
                 [sg.Text('Consider using a different word', justification='center', key='top_words', visible=True)],
                 [sg.Multiline(justification='center', key='the_most_frequent_words', visible=True)]
                 ]
+
 Full_Text_Layout =[
                 [sg.Text('Full Text', justification='center', key='text_print', visible=True)],
                 [sg.Multiline( justification='center', key='print_full_text', visible=True)]
@@ -224,8 +225,8 @@ Full_Text_Layout =[
 
 Words_freq_Layout = [
                     [sg.Text('Words and frequency', justification='center', key='WORD_FREQ', visible=True)],
-                     [sg.Multiline('Words and frequency: ', justification='center', key='F_WORDS_LINES', visible=True),
-                      sg.Button(button_text='Next word', key='C_next_word', visible=False)]
+                    [sg.Multiline('Words and frequency: ', justification='center', key='F_WORDS_LINES', visible=True),
+                     sg.Button(button_text='Next word', key='C_next_word', visible=False)]
                     ]
 
 Text_Calculating_Screen = [
@@ -233,7 +234,7 @@ Text_Calculating_Screen = [
                     [sg.Button(button_text='Print text', key='C_PRINT_TEXT')],
                     [sg.Button(button_text='Top Frequent words', key='TOP_FREQ_WORDS')],
                     [sg.Frame('Words And Frequency', Words_freq_Layout, font='Any 12', title_color='blue'),
-                        sg.Canvas(key='PRINT_WORDS_FREQ', visible=True)],
+                     sg.Canvas(key='PRINT_WORDS_FREQ', visible=True)],
                     [sg.Frame('Your Full Text', Full_Text_Layout, font='Any 12', title_color='blue'),
                      sg.Canvas(key='PRINT_TEXT', visible=False)],
                     [sg.Frame('Top Frequent Words', Freq_words_Layout, font='Any 12', title_color='blue'),
