@@ -7,6 +7,7 @@ import parselmouth as pm
 from scipy.io.wavfile import read as read_wav
 from parselmouth.praat import call
 import pyaudio
+import speech_recognition as sr
 # ===================================================================================================================#
 #Gloval Vars
 _SPECTOGRAM_COLOR = 'afmhot'
@@ -133,8 +134,10 @@ def get_score_and_suggestion(feature_set,_STARTING_SCORE):
     # If there is any suggestion to be made then return it with the current score prediction
     if (feature_set['diffPitchMaxMean']-197.169447)/42.695449 <0.0443:
             return 'Decrease Your Pitch a Little Bit',current_score
+    ## Pitch may be related to high/low  voice
     elif (feature_set['intensityMin']-35.219)/1.61539 >= 1.6:
         return 'Increase Your Intensity a Little Bit', current_score
+    ## Intensity may be related to the loudness of the voice
 
     #If there were no bad feature found give user a compliment
     return _COMPLIMENT_POOL[np.random.randint(0,len(_COMPLIMENT_POOL),1)[0]], current_score

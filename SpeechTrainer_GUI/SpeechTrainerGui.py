@@ -7,8 +7,14 @@ from SpeechTrainer_GUI import Audio_Processing_Backend as backend
 import wave
 import pyaudio
 import json
+import speech_recognition as sr
 import os
+import nltk
+from nltk import FreqDist
+from nltk.corpus import brown
+
 sg.theme('LightBrown6')
+
 
 #FUNCS
 #Popup select window
@@ -56,6 +62,8 @@ def recored_audio(rec_time  , fragmentize=2, output_path='', file_name='output.w
     global _NEW_SEGMENT_FLAG
     _RECORDING_STATE = True
     p = pyaudio.PyAudio()
+
+
 
     stream = p.open(format=FORMAT,
                     channels=CHANNELS,
@@ -199,12 +207,32 @@ Training_Screen = [
                       sg.Canvas(key='T_PROGRESS_PLOT_CANVAS', visible=True)],
                      [sg.Button(button_text='Stop',key='T_STOP_REC',visible=False)],
                      [sg.Button(button_text='Back', key='T_BACK')],
+                    [sg.Button(button_text='Calculate Text', key='Cal_Text',visible=False)],
                      [sg.Text('Audio Input:',justification='center')],
                      [sg.Canvas(key='T_SOUND_PLOT_CANVAS',visible=True)]
                       ]
+Full_Text_Layout =[
+                [sg.Text('Full Text', justification='center', key='text_print', visible=True)],
+                [sg.Multiline( justification='center', key='print_full_text', visible=True)]
+                ]
+
+Words_freq_Layout = [
+                    [sg.Text('Words and frequency', justification='center', key='WORD_FREQ', visible=True)],
+                     [sg.Multiline('Words and frequency: ', justification='center', key='F_WORDS_LINES', visible=True),
+                      sg.Button(button_text='Next word', key='C_next_word', visible=False)]
+                    ]
+
+Text_Calculating_Screen = [
+                    [sg.Button(button_text='Back', key='C_BACK')],
+                    [sg.Button(button_text='Print text', key='C_PRINT_TEXT')],
+                    [sg.Frame('Words Frequency', Words_freq_Layout, font='Any 12', title_color='blue'),
+                        sg.Canvas(key='PRINT_WORDS_FREQ', visible=True)],
+                    [sg.Frame('Print text', Full_Text_Layout, font='Any 12', title_color='blue'),
+                     sg.Canvas(key='PRINT_TEXT', visible=False)]
+                    ]
 # ===================================================================================================================#
 #Main Layout
-layout = [[sg.Column(Main_Screen, key='-COL1-'), sg.Column(Training_Screen, visible=False, key='-COL2-')]
+layout = [[sg.Column(Main_Screen, key='-COL1-'), sg.Column(Training_Screen, visible=False, key='-COL2-'), sg.Column(Text_Calculating_Screen, visible=False, key='-COL3-')]
     ]
 # ===================================================================================================================#
 
@@ -213,11 +241,11 @@ window = sg.Window("Speech Trainer", layout,size=(800,500),auto_size_buttons=Tru
 # ===================================================================================================================#
 
 #Loading External Data
-with open('SpeechTrainer_GUI/Data/Job_Interview_Questions.json','r') as jfile:
+with open('/Users/Noam/PycharmProjects/NLP/SpeechTrainer_GUI/Data/Job_Interview_Questions.json','r') as jfile:
     Q_Job_Interview = json.load(jfile)
     Q_Job_Interview = json.loads(Q_Job_Interview)
 Q_Job_Interview = [i for i in list(Q_Job_Interview.keys()) if i.find('?')!=-1]
-with open('SpeechTrainer_GUI/Data/Date_Questions.json','r') as jfile:
+with open('/Users/Noam/PycharmProjects/NLP/SpeechTrainer_GUI/Data/Date_Questions.json','r') as jfile:
     Q_Date = json.load(jfile)
     Q_Date = json.loads(Q_Date)
 
@@ -229,6 +257,7 @@ _TRAIN_TIME           = 1
 _TRAIN_TOPIC          = 'Null'
 _TIME_COUNTER         = 0
 _SAMPLING_RATE        = 2
+_NEXT_WORD_ = 0
 _RECORDING_STATE      = False
 _NEW_SEGMENT_FLAG     = False
 _ANALYSIS_RESULT_FLAG = False
@@ -261,7 +290,7 @@ while True:
     if event in (None, 'Exit'):
         print('EXIT')
         os.remove('fragment.wav')
-        os.remove('output.wav')
+        # os.remove('output.wav')
         break
 
     #Main Screen Calls
@@ -278,9 +307,14 @@ while True:
             continue
         window[f'-COL1-'].update(visible=False)
         window[f'-COL2-'].update(visible=True)
+
     if event == 'T_BACK':
         window[f'-COL2-'].update(visible=False)
         window[f'-COL1-'].update(visible=True)
+
+        # window[f'-COL2-'].update(visible=False)
+        # window[f'-COL1-'].update(visible=True)
+
         #Begin Recording and Training process
     if event == 'T_BEGIN_REC' and _RECORDING_STATE is False:#Draw Sound Wave
         # Start Backend Recording in an new thread
@@ -353,6 +387,7 @@ while True:
             if event == 'T_STOP_REC':
                 _STOP_RECORDING=True
                 recording_thread.join()
+                window['Cal_Text'].update(visible=True)
                 break
             window.refresh()
 
@@ -360,10 +395,40 @@ while True:
             window['T_STOP_REC'].update(visible=False)
             _STOP_RECORDING=False
 
+    if event == 'Cal_Text':
+        window[f'-COL2-'].update(visible=False)
+        window[f'-COL3-'].update(visible=True)
+        window['C_next_word'].update(visible=True)
+        print('calculating...')
+        r = sr.Recognizer()
+        with sr.AudioFile('output.wav') as source:
+            audio = r.record(source)
+            words_list = []
+            try:
+                text = r.recognize_google(audio)
+                freq = FreqDist(text.split())
+                ### note: We can calculate if there are too many words repititions and present them
+                for word, freq in freq.items():
+                    print_freq = "The word: '" + word + "' has been said " + str(freq) + " times."
+                    words_list.append(print_freq)
+            except:
+                print("couldn't recognize text")
+
+    if event == 'C_BACK':
+        _NEXT_WORD_ = 0
+        window[f'-COL3-'].update(visible=False)
+        window[f'-COL2-'].update(visible=False)
+        window[f'-COL1-'].update(visible=True)
+
         #Join Recording Thread To Main Process
         recording_thread.join()
 
-#===================================================================================================================#
+    if event == 'C_next_word':
+        window['F_WORDS_LINES'].update(words_list[_NEXT_WORD_])
+        _NEXT_WORD_ += 1
+    if event == 'C_PRINT_TEXT':
+        window['print_full_text'].update(text)
+    #===================================================================================================================#
     #Set Train Time Popup
     if event == 'ST_CHOOSE_TRAIN_TIME':
         _TRAIN_TIME = sg.popup_get_text('Choose Train Time (in Minutes)')
