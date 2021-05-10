@@ -1,6 +1,7 @@
 import PySimpleGUI as sg
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
+import pandas as pd
 from matplotlib.figure import Figure
 from threading import Thread
 from SpeechTrainer_GUI import Audio_Processing_Backend as backend
@@ -211,6 +212,11 @@ Training_Screen = [
                      [sg.Text('Audio Input:',justification='center')],
                      [sg.Canvas(key='T_SOUND_PLOT_CANVAS',visible=True)]
                       ]
+
+Freq_words_Layout =[
+                [sg.Text('Consider using a different word', justification='center', key='top_words', visible=True)],
+                [sg.Multiline(justification='center', key='the_most_frequent_words', visible=True)]
+                ]
 Full_Text_Layout =[
                 [sg.Text('Full Text', justification='center', key='text_print', visible=True)],
                 [sg.Multiline( justification='center', key='print_full_text', visible=True)]
@@ -225,10 +231,13 @@ Words_freq_Layout = [
 Text_Calculating_Screen = [
                     [sg.Button(button_text='Back', key='C_BACK')],
                     [sg.Button(button_text='Print text', key='C_PRINT_TEXT')],
-                    [sg.Frame('Words Frequency', Words_freq_Layout, font='Any 12', title_color='blue'),
+                    [sg.Button(button_text='Top Frequent words', key='TOP_FREQ_WORDS')],
+                    [sg.Frame('Words And Frequency', Words_freq_Layout, font='Any 12', title_color='blue'),
                         sg.Canvas(key='PRINT_WORDS_FREQ', visible=True)],
-                    [sg.Frame('Print text', Full_Text_Layout, font='Any 12', title_color='blue'),
-                     sg.Canvas(key='PRINT_TEXT', visible=False)]
+                    [sg.Frame('Your Full Text', Full_Text_Layout, font='Any 12', title_color='blue'),
+                     sg.Canvas(key='PRINT_TEXT', visible=False)],
+                    [sg.Frame('Top Frequent Words', Freq_words_Layout, font='Any 12', title_color='blue'),
+                     sg.Canvas(key='top_fre_words', visible=False)]
                     ]
 # ===================================================================================================================#
 #Main Layout
@@ -404,13 +413,24 @@ while True:
         with sr.AudioFile('output.wav') as source:
             audio = r.record(source)
             words_list = []
+            top_freq_words_str = ""
+            df = pd.DataFrame()
             try:
                 text = r.recognize_google(audio)
                 freq = FreqDist(text.split())
-                ### note: We can calculate if there are too many words repititions and present them
+                df = pd.DataFrame(index=range(len(freq)), columns=['word', 'times'])
+                ### note: We can calculate if there are too many words repititions and present
+                i = 0
                 for word, freq in freq.items():
                     print_freq = "The word: '" + word + "' has been said " + str(freq) + " times."
+                    df['word'][i] = word
+                    df['times'][i] = int(freq)
                     words_list.append(print_freq)
+                    i+=1
+                df.sort_values(by=['times'], ascending=True)
+                for i in df[0:3].index:
+                    if(int(df['times'][i])<=2): continue
+                    top_freq_words_str += "'" + df['word'][i] + "' was said " + str(df['times'][i]) + " time.\n"
             except:
                 print("couldn't recognize text")
 
@@ -431,10 +451,15 @@ while True:
         else:
             window['F_WORDS_LINES'].update(words_list[_NEXT_WORD_])
             _NEXT_WORD_ += 1
+
+
+    if event == 'TOP_FREQ_WORDS':
+        if(len(words_list)!=0): window['the_most_frequent_words'].update(top_freq_words_str)
+
     if event == 'C_PRINT_TEXT':
-        if(len(words_list)!=0):
-            window['print_full_text'].update(text)
-    #===================================================================================================================#
+        if(len(words_list)!=0): window['print_full_text'].update(text)
+
+    #=============================F_WORDS_LINES======================================================================================#
     #Set Train Time Popup
     if event == 'ST_CHOOSE_TRAIN_TIME':
         _TRAIN_TIME = sg.popup_get_text('Choose Train Time (in Minutes)')
