@@ -251,11 +251,13 @@ window = sg.Window("Speech Trainer", layout,size=(800,500),auto_size_buttons=Tru
 # ===================================================================================================================#
 
 #Loading External Data
-with open('/Users/Noam/PycharmProjects/NLP/SpeechTrainer_GUI/Data/Job_Interview_Questions.json','r') as jfile:
+#/Users/Noam/PycharmProjects/NLP/SpeechTrainer_GUI/Data/Job_Interview_Questions.json'
+with open('SpeechTrainer_GUI/Data/Job_Interview_Questions.json','r') as jfile:
     Q_Job_Interview = json.load(jfile)
     Q_Job_Interview = json.loads(Q_Job_Interview)
-Q_Job_Interview = [i for i in list(Q_Job_Interview.keys()) if i.find('?')!=-1]
-with open('/Users/Noam/PycharmProjects/NLP/SpeechTrainer_GUI/Data/Date_Questions.json','r') as jfile:
+Q_Job_Interview = [i for i in list(Q_Job_Interview.keys()) if i.find('?')!=-1]\
+#/Users/Noam/PycharmProjects/NLP/SpeechTrainer_GUI/Data/Date_Questions.json
+with open('SpeechTrainer_GUI/Data/Date_Questions.json','r') as jfile:
     Q_Date = json.load(jfile)
     Q_Date = json.loads(Q_Date)
 
