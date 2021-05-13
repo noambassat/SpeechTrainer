@@ -132,16 +132,33 @@ def get_score_and_suggestion(feature_set,_STARTING_SCORE):
 
 
     # If there is any suggestion to be made then return it with the current score prediction
-    if (feature_set['diffPitchMaxMean']-197.169447)/42.695449 <0.0443:
+    if (feature_set['diffPitchMaxMean']-197.169447)/42.695449 <0.443:
             return 'Decrease Your Pitch a Little Bit',current_score
-    ## Pitch may be related to high/low  voice
+
     elif (feature_set['intensityMin']-35.219)/1.61539 >= 1.6:
         return 'Increase Your Intensity a Little Bit', current_score
-    ## Intensity may be related to the loudness of the voice
 
     #If there were no bad feature found give user a compliment
     return _COMPLIMENT_POOL[np.random.randint(0,len(_COMPLIMENT_POOL),1)[0]], current_score
+    # Pitch may be related to high/low tone
+    # High Intensity is related to strong emotions such as anger.
+    # Intensity may be related to the loudness of the voice OR by the speaker distance from the microphone
+#
 
+
+######according to DT : ########
+# intensityMin >= 1.6 is good
+# pitch_quant <=-0.96 is good
+# diffPitchMaxMean <= 0.443 is good
+
+# Pitch may be related to high/low tone
+    # High Intensity is related to strong emotions such as anger.
+    # Intensity may be related to the loudness of the voice OR by the speaker distance from the microphone
+    #
+    # Rising Intonation means the pitch of the voice rises over time[↗];
+    # Falling Intonation means that the pitch falls with time[↘];
+    # Dipping  Intonation   falls and then  rises[↘↗];
+    # Peaking   Intonation   rises and then falls[↗↘].
 # ===================================================================================================================#
 
 
