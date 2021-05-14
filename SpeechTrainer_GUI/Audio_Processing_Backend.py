@@ -132,14 +132,31 @@ def get_score_and_suggestion(feature_set,_STARTING_SCORE):
 
 
     # If there is any suggestion to be made then return it with the current score prediction
-    if (feature_set['diffPitchMaxMean']-197.169447)/42.695449 <0.443:
-            return 'Decrease Your Pitch a Little Bit',current_score
+    advice = ""
+    num = 1
+    if (feature_set['intensityMax'])  >= 86:
+         advice += str(num) + ') Please CALM DOWN and try again! \n'
+         return advice, current_score
 
-    elif (feature_set['intensityMin']-35.219)/1.61539 >= 1.6:
-        return 'Increase Your Intensity a Little Bit', current_score
+    if (feature_set['intensityMin'] - 35.219) / 1.61539 > 1.6:
+        advice += str(num)+ ') Please speak calmly \n'
+        num += 1
+
+    if ( -0.6314 + 0.0167 * feature_set['intensityMax']) < 0.3:
+        advice +=str(num)+ ') Please speak louder or get closer to the microphone\n'
+        num += 1
+
+    if (feature_set['diffPitchMaxMean'] - 197.169447) / 42.695449 >= 0.443:
+        advice += str(num)+ ') Please lower you tone: \n Unless you are asking a question, your intonation needs to go down in the end of the sentence\n'
+        num += 1
+
+
 
     #If there were no bad feature found give user a compliment
-    return _COMPLIMENT_POOL[np.random.randint(0,len(_COMPLIMENT_POOL),1)[0]], current_score
+    if(num == 1):
+        return _COMPLIMENT_POOL[np.random.randint(0,len(_COMPLIMENT_POOL),1)[0]], current_score
+
+    return advice, current_score
     # Pitch may be related to high/low tone
     # High Intensity is related to strong emotions such as anger.
     # Intensity may be related to the loudness of the voice OR by the speaker distance from the microphone
