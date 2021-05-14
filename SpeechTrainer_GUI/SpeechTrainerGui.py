@@ -251,6 +251,7 @@ window = sg.Window("Speech Trainer", layout,size=(800,500),auto_size_buttons=Tru
 # ===================================================================================================================#
 
 #Loading External Data
+
 #/Users/Noam/PycharmProjects/NLP/SpeechTrainer_GUI/Data/Job_Interview_Questions.json'
 with open('SpeechTrainer_GUI/Data/Job_Interview_Questions.json','r') as jfile:
     Q_Job_Interview = json.load(jfile)
