@@ -13,6 +13,7 @@ import os
 import nltk
 from nltk import FreqDist
 from nltk.corpus import brown
+import seaborn as sns
 
 sg.theme('LightBrown6')
 
@@ -202,9 +203,14 @@ QS_Frame_Layout = [
                      [sg.Multiline('Raise Your Voice ', justification='center', key='T_Q_TIPS', visible=False)],
 
                   ]
+PP_Frame_Layout = [
+                     [sg.Canvas(key='T_P_PROGRESS_PLOT_CANVAS', visible=True)],
+                  ]
+
 Training_Screen = [
                      [sg.Button(button_text='Begin',key='T_BEGIN_REC')],
                      [sg.Frame('Status Panel', QS_Frame_Layout, font='Any 12', title_color='blue'),
+                      sg.Frame('Progress Panel', PP_Frame_Layout, font='Any 12', title_color='blue'),
                       sg.Canvas(key='T_PROGRESS_PLOT_CANVAS', visible=True)],
                      [sg.Button(button_text='Stop',key='T_STOP_REC',visible=False)],
                      [sg.Button(button_text='Back', key='T_BACK')],
@@ -284,10 +290,15 @@ _QUESTION_SETS        = {
                         }
 _LOADED_QUESTION_SET = None
 _STOP_RECORDING      = False
+_SCORE_MEMORY        = []
+_SEGMENT_COUNTER     = 0
 # ===================================================================================================================#
 #Canvas Config
 canvas_elem = window['T_SOUND_PLOT_CANVAS']
 canvas = canvas_elem.TKCanvas
+
+canvas_elem_2 = window['T_P_PROGRESS_PLOT_CANVAS']
+canvas_2 = canvas_elem_2.TKCanvas
 
 fig = Figure(figsize=(9,4))
 ax = fig.add_subplot(111)
@@ -295,6 +306,12 @@ ax.set_xlabel("X axis")
 ax.set_ylabel("Y axis")
 ax.grid()
 fig_agg = draw_figure(canvas, fig)
+fig_2 = Figure(figsize=(5,2))
+ax_2 = fig_2.add_subplot(111)
+ax_2.set_xlabel("X axis")
+ax_2.set_ylabel("Y axis")
+ax_2.grid()
+fig_agg_2 = draw_figure(canvas_2, fig_2)
 
 
 # ===================================================================================================================#
@@ -331,6 +348,8 @@ while True:
         #Begin Recording and Training process
     if event == 'T_BEGIN_REC' and _RECORDING_STATE is False:#Draw Sound Wave
         # Start Backend Recording in an new thread
+        _SEGMENT_COUNTER = 0
+        _SCORE_MEMORY    = []
         recording_thread = Thread(target=recored_audio,args=(_TRAIN_TIME * 60, _SAMPLING_RATE,'','output.wav'))
         recording_thread.start()
         print('RECORDING...')
@@ -381,18 +400,27 @@ while True:
                 print(_ANALYSIS_RESULT)
                 cur_suggestion,cur_score = backend.get_score_and_suggestion(_ANALYSIS_RESULT,_STARTING_SCORE)
                 _STARTING_SCORE = cur_score
+                _SCORE_MEMORY.append(_STARTING_SCORE)
+                _SEGMENT_COUNTER +=1
                 window['T_Q_TIPS'].update(cur_suggestion+' \t'+'Current Speech Score: [ %0.2f ]'%_STARTING_SCORE)
 
                 ####
 
                 # Canvas Update Section
                 ax.cla()
+                ax_2.cla()
                 #in case there are already 2 layers on canvas
                 if _AX_TAG != None:
                     _AX_TAG.cla()
                     _AX_TAG_2.cla()
                 _AX_TAG,_AX_TAG_2 = backend.draw_gui_soundgraph(_ANALYSIS_RESULT['pitch'],segment,ax)
+                sns.lineplot(x=range(1,_SEGMENT_COUNTER+1),y=_SCORE_MEMORY,ax=ax_2,color='tab:red',ls='dashdot')
+                ax_2.set_xlabel('Segment')
+                ax_2.set_ylabel('Speech Score')
+                ax_2.set_title('Training Progression')
+                ax_2.grid()
                 fig_agg.draw()
+                fig_agg_2.draw()
                 # Next Question Button Pressed
             if event == 'T_NEXT_Q':
                 window['T_Q_TEXT'].update(_LOADED_QUESTION_SET[np.random.randint(0, len(_LOADED_QUESTION_SET), 1)[0]])
