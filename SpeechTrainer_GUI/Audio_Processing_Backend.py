@@ -130,7 +130,16 @@ def get_score_and_suggestion(feature_set,_STARTING_SCORE):
     else:
         current_score = _STARTING_SCORE - 0.1*current_score
 
-    ### I THINK WE NEED TO IMPROVE THE SCORE AND RATING METHODS, THEY LOOK BAD ###
+    #                                   ### NOTE ###
+    """
+    *******************************************************************************
+            I think we need to improve the scoring method- its not working well.. 
+        
+        When there are NO advices the score can go down (and it shouldn't) and vice verse -
+         When there are some correction to do the score goes up and it shouldn't
+    *******************************************************************************
+    """
+
 
     # If there is any suggestion to be made then return it with the current score prediction
     advice = ""
