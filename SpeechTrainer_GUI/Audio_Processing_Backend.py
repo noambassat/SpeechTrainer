@@ -130,6 +130,7 @@ def get_score_and_suggestion(feature_set,_STARTING_SCORE):
     else:
         current_score = _STARTING_SCORE - 0.1*current_score
 
+    ### I THINK WE NEED TO IMPROVE THE SCORE AND RATING METHODS, THEY LOOK BAD ###
 
     # If there is any suggestion to be made then return it with the current score prediction
     advice = ""
@@ -143,11 +144,11 @@ def get_score_and_suggestion(feature_set,_STARTING_SCORE):
         num += 1
 
     if ( -0.6314 + 0.0167 * feature_set['intensityMax']) < 0.3:
-        advice +=str(num)+ ') Please speak louder or get closer to the microphone\n'
-        num += 1
+        return 'Please speak louder or get closer to the microphone\n' + current_score
+
 
     if (feature_set['diffPitchMaxMean'] - 197.169447) / 42.695449 >= 0.443:
-        advice += str(num)+ ') Please lower you tone: \n Unless you are asking a question, your intonation needs to go down in the end of the sentence\n'
+        advice += str(num)+ ') Please lower you tone: \n Unless you are asking a question, your INTONATION needs to go DOWN in the end of the sentence\n'
         num += 1
 
 
