@@ -8,10 +8,22 @@ from scipy.io.wavfile import read as read_wav
 from parselmouth.praat import call
 import pyaudio
 import speech_recognition as sr
+import pickle
+from scipy.stats import linregress
+
 # ===================================================================================================================#
 #Gloval Vars
 _SPECTOGRAM_COLOR = 'afmhot'
 _COMPLIMENT_POOL = ['Nice Job So Far!','Keep it Up','You are on the right track!']
+S_SCORE_MODEL  = None
+SCALER         = None
+
+
+with open('Models_and_Misc/Standard_Scaler.pkl','rb') as file:
+    SCALER = pickle.load(file)
+
+with open('Models_and_Misc/optimzed_XGB.pkl','rb') as file:
+    S_SCORE_MODEL = pickle.load(file)
 
 
 #Helper Functions
@@ -118,19 +130,19 @@ def calculate_sound_features(snd):
 
 
 #Suggestion Generation Backend Function
-def get_score_and_suggestion(feature_set,_STARTING_SCORE):
-    current_score = 0
-    IntensityBased = -0.7946 + 0.0243 * feature_set['intensityMean']
-    IntensityBased += -0.6314 + 0.0167 * feature_set['intensityMax']
-    IntensityBased += (-0.0025 + 0.0015*feature_set['PitchMax'])
-    current_score = IntensityBased/3
+def get_score_and_suggestion(feature_set,_STARTING_SCORE,_SCORE_MEAN,_SCORE_STD):
+    _c_input_vector = np.array(list(feature_set.values())[:-1])
+    _c_input_vector = np.nan_to_num(_c_input_vector)
+    _c_input_vector = SCALER.transform(_c_input_vector[None,:])
+    current_score = S_SCORE_MODEL.predict(X=_c_input_vector)[0]
 
-    if current_score > _STARTING_SCORE:
-        current_score = _STARTING_SCORE + 0.1*current_score
-    else:
-        current_score = _STARTING_SCORE - 0.1*current_score
+    # current_score = score at time (t) , _STARTING_SCORE = score at time (t-1)
+    ALPHA = 1
+    if _SCORE_MEAN!=0:
+        if (current_score > _SCORE_MEAN+ALPHA*_SCORE_STD) or (current_score < _SCORE_MEAN-ALPHA*_SCORE_STD):
+            current_score = _STARTING_SCORE + (current_score-_SCORE_MEAN)
 
-    #                                   ### NOTE ###
+                                   ### NOTE ###
     """
     *******************************************************************************
             I think we need to improve the scoring method- its not working well.. 

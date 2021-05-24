@@ -259,12 +259,12 @@ window = sg.Window("Speech Trainer", layout,size=(800,500),auto_size_buttons=Tru
 #Loading External Data
 
 #/Users/Noam/PycharmProjects/NLP/SpeechTrainer_GUI/Data/Job_Interview_Questions.json'
-with open('SpeechTrainer_GUI/Data/Job_Interview_Questions.json','r') as jfile:
+with open('Data/Job_Interview_Questions.json','r') as jfile:
     Q_Job_Interview = json.load(jfile)
     Q_Job_Interview = json.loads(Q_Job_Interview)
 Q_Job_Interview = [i for i in list(Q_Job_Interview.keys()) if i.find('?')!=-1]\
 #/Users/Noam/PycharmProjects/NLP/SpeechTrainer_GUI/Data/Date_Questions.json
-with open('SpeechTrainer_GUI/Data/Date_Questions.json','r') as jfile:
+with open('Data/Date_Questions.json','r') as jfile:
     Q_Date = json.load(jfile)
     Q_Date = json.loads(Q_Date)
 
@@ -398,7 +398,15 @@ while True:
 
                 #Updating
                 print(_ANALYSIS_RESULT)
-                cur_suggestion,cur_score = backend.get_score_and_suggestion(_ANALYSIS_RESULT,_STARTING_SCORE)
+
+                if len(_SCORE_MEMORY)==0:
+                    Score_Mean = 0
+                    Score_STD  = 0
+                else:
+                    Score_Mean = np.mean(pd.array(_SCORE_MEMORY))
+                    Score_STD = np.std(pd.array(_SCORE_MEMORY))
+
+                cur_suggestion,cur_score = backend.get_score_and_suggestion(_ANALYSIS_RESULT,_STARTING_SCORE,Score_Mean,Score_STD)
                 _STARTING_SCORE = cur_score
                 _SCORE_MEMORY.append(_STARTING_SCORE)
                 _SEGMENT_COUNTER +=1
